@@ -1,0 +1,6 @@
+{
+  "name": "DESIGN FOUNDRY — Creative Studio",
+  "description": "Independent creative studio crafting bold identities, striking visuals, and meaningful digital experiences.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
