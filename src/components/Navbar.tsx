@@ -3,7 +3,11 @@ import { useMotion } from '../context/MotionContext';
 import { Sliders, Sun, Moon, Menu, X, ArrowUpRight } from 'lucide-react';
 import { StudioLogo } from './StudioLogo';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onReplayIntro?: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onReplayIntro }) => {
   const { settings, effectiveTheme, updateSetting, setIsSettingsOpen, playFeedbackSound } = useMotion();
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);

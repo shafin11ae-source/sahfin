@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "Client project inquiry dossier submitted through DESIGN FOUNDRY contact system",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 150 },
+        "company": { "type": "string", "maxLength": 120 },
+        "service": { "type": "string", "maxLength": 100 },
+        "budget": { "type": "string", "maxLength": 60 },
+        "deadline": { "type": "string", "maxLength": 60 },
+        "description": { "type": "string", "maxLength": 5000 },
+        "referenceLinks": { "type": "string", "maxLength": 1000 },
+        "attachmentsNote": { "type": "string", "maxLength": 1000 },
+        "recipientEmail": { "type": "string", "format": "email" },
+        "deliveryStatus": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "reviewed", "archived"] }
+      },
+      "required": ["name", "email", "company", "service", "description", "recipientEmail"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Curated studio portfolio project item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 60 },
+        "client": { "type": "string", "maxLength": 120 },
+        "year": { "type": "string", "maxLength": 10 },
+        "heroImage": { "type": "string", "maxLength": 1000 },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "description": { "type": "string", "maxLength": 2000 },
+        "challenge": { "type": "string", "maxLength": 2000 },
+        "solution": { "type": "string", "maxLength": 2000 },
+        "results": { "type": "string", "maxLength": 2000 },
+        "scope": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "liveUrl": { "type": "string", "maxLength": 500 },
+        "award": { "type": "string", "maxLength": 120 },
+        "aspect": { "type": "string", "maxLength": 20 }
+      },
+      "required": ["title", "category", "client", "year", "heroImage", "description"]
+    }
+  },
+  "firestore": {
+    "/inquiries/{inquiryId}": {
+      "schema": "Inquiry",
+      "description": "Collection of client project inquiries"
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Collection of portfolio projects curated by studio director"
+    }
+  }
+}

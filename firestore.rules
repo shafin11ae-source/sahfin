@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 100 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidInquiry(data) {
+      return data.keys().hasAll(['name', 'email', 'company', 'service', 'description', 'recipientEmail'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.email is string && data.email.size() > 3 && data.email.size() <= 150
+        && data.company is string && data.company.size() > 0 && data.company.size() <= 120
+        && data.service is string && data.service.size() <= 100
+        && data.description is string && data.description.size() > 0 && data.description.size() <= 5000
+        && data.recipientEmail is string && data.recipientEmail.size() <= 150;
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['title', 'category', 'client', 'year', 'heroImage', 'description'])
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 150
+        && data.category is string && data.category.size() <= 60
+        && data.client is string && data.client.size() <= 120
+        && data.year is string && data.year.size() <= 10
+        && data.heroImage is string && data.heroImage.size() <= 1000
+        && data.description is string && data.description.size() <= 2000;
+    }
+
+    // Client Inquiries Collection
+    match /inquiries/{inquiryId} {
+      allow read: if true;
+      allow create: if isValidId(inquiryId) && isValidInquiry(request.resource.data);
+      allow update, delete: if isValidId(inquiryId);
+    }
+
+    // Portfolio Projects Collection
+    match /projects/{projectId} {
+      allow read: if true;
+      allow create: if isValidId(projectId) && isValidProject(request.resource.data);
+      allow update: if isValidId(projectId) && isValidProject(request.resource.data);
+      allow delete: if isValidId(projectId);
+    }
+
+    // Connection testing
+    match /test/{testId} {
+      allow read: if true;
+    }
+  }
+}

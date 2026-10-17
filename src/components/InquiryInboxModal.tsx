@@ -16,7 +16,13 @@ import {
   Check,
   ExternalLink,
   PlusCircle,
+  Database,
 } from 'lucide-react';
+import {
+  fetchInquiriesFromFirestore,
+  saveInquiryToFirestore,
+  deleteInquiryFromFirestore,
+} from '../lib/firebase';
 
 interface InquiryInboxModalProps {
   onClose: () => void;
@@ -30,11 +36,27 @@ export const InquiryInboxModal: React.FC<InquiryInboxModalProps> = ({ onClose })
   const [loading, setLoading] = useState(true);
   const [selectedInquiry, setSelectedInquiry] = useState<InquiryData | null>(null);
   const [copiedId, setCopiedId] = useState(false);
+  const [dbConnected, setDbConnected] = useState(true);
 
   const fetchInquiries = async () => {
     setLoading(true);
     try {
-      // Fetch from real Vite API endpoint
+      // 1. First fetch directly from persistent Firestore Database
+      const firestoreItems = await fetchInquiriesFromFirestore();
+      if (firestoreItems && firestoreItems.length > 0) {
+        setInquiries(firestoreItems);
+        setSelectedInquiry(firestoreItems[0]);
+        setLoading(false);
+        setDbConnected(true);
+        localStorage.setItem('design_foundry_inquiries_v1', JSON.stringify(firestoreItems));
+        return;
+      }
+    } catch (e) {
+      console.warn('[Firebase] Firestore read fallback:', e);
+    }
+
+    try {
+      // 2. Secondary fetch from API
       const res = await fetch('/api/inquiries');
       if (res.ok) {
         const data = await res.json();
@@ -45,10 +67,9 @@ export const InquiryInboxModal: React.FC<InquiryInboxModalProps> = ({ onClose })
           return;
         }
       }
-    } catch {
-      // Fallback to localStorage
-    }
+    } catch {}
 
+    // 3. Fallback to local storage
     try {
       const stored = localStorage.getItem('design_foundry_inquiries_v1');
       if (stored) {
@@ -122,6 +143,9 @@ export const InquiryInboxModal: React.FC<InquiryInboxModalProps> = ({ onClose })
       createdAt: new Date().toISOString(),
       status: 'new',
     };
+    try {
+      await saveInquiryToFirestore(localCreated);
+    } catch {}
     try {
       const stored = localStorage.getItem('design_foundry_inquiries_v1');
       const list = stored ? JSON.parse(stored) : [];
@@ -212,10 +236,15 @@ Date: ${inq.createdAt || 'N/A'}
                 ({inquiries.length} submissions)
               </span>
             </div>
-            <div className="text-[11px] font-mono text-[var(--text-muted)] flex items-center gap-1.5">
-              <span>Director Destination:</span>
-              <span className="text-emerald-400 font-semibold">{TARGET_DIRECTOR_EMAIL}</span>
-              <span className="text-emerald-500 text-[10px]">● Active</span>
+            <div className="text-[11px] font-mono text-[var(--text-muted)] flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div>
+                <span>Director Destination: </span>
+                <span className="text-emerald-400 font-semibold">{TARGET_DIRECTOR_EMAIL}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-400">
+                <Database className="w-3 h-3" />
+                <span>Firestore DB Active</span>
+              </div>
             </div>
           </div>
 

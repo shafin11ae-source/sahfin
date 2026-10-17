@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { InquiryInboxModal } from './InquiryInboxModal';
 import { StudioAuthModal } from './StudioAuthModal';
+import { saveInquiryToFirestore } from '../lib/firebase';
 
 interface ContactProps {
   selectedServicePreset?: string;
@@ -122,6 +123,13 @@ export const Contact: React.FC<ContactProps> = ({ selectedServicePreset }) => {
         status: 'new',
       };
 
+      // Save to Firestore Database
+      try {
+        await saveInquiryToFirestore(finalizedInquiry);
+      } catch (dbErr) {
+        console.warn('[Firebase] Firestore save notice:', dbErr);
+      }
+
       // Save to client localStorage for persistence
       try {
         const stored = localStorage.getItem('design_foundry_inquiries_v1');
@@ -143,6 +151,11 @@ export const Contact: React.FC<ContactProps> = ({ selectedServicePreset }) => {
         createdAt: new Date().toISOString(),
         status: 'new',
       };
+
+      try {
+        await saveInquiryToFirestore(fallbackInquiry);
+      } catch {}
+
       try {
         const stored = localStorage.getItem('design_foundry_inquiries_v1');
         const list = stored ? JSON.parse(stored) : [];

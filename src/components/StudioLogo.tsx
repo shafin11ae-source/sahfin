@@ -1,10 +1,12 @@
-import React from 'react';
+export type StudioLogoStyle = 'monolith' | 'crucible' | 'prism';
 
-interface StudioLogoProps {
+export interface StudioLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | number;
   showWordmark?: boolean;
   className?: string;
   monogramOnly?: boolean;
+  style?: StudioLogoStyle;
+  variant?: string;
 }
 
 export const StudioLogo: React.FC<StudioLogoProps> = ({
@@ -12,6 +14,8 @@ export const StudioLogo: React.FC<StudioLogoProps> = ({
   showWordmark = false,
   className = '',
   monogramOnly = false,
+  style,
+  variant,
 }) => {
   const pixelSize =
     typeof size === 'number'

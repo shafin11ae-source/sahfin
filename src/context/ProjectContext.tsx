@@ -2,6 +2,12 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Project, ProjectCategory } from '../types';
 import { INITIAL_PROJECTS } from '../data/initialProjects';
 import { useMotion } from './MotionContext';
+import {
+  fetchProjectsFromFirestore,
+  saveProjectToFirestore,
+  deleteProjectFromFirestore,
+  seedInitialProjectsToFirestore,
+} from '../lib/firebase';
 
 const PROJECTS_STORAGE_KEY = 'design_foundry_projects_data_v1';
 
@@ -14,10 +20,11 @@ interface ProjectContextValue {
   setSelectedProject: (proj: Project | null) => void;
   isAdminOpen: boolean;
   setIsAdminOpen: (open: boolean) => void;
-  addProject: (project: Omit<Project, 'id'>) => void;
-  updateProject: (project: Project) => void;
-  deleteProject: (id: string) => void;
+  addProject: (project: Omit<Project, 'id'>) => Promise<void>;
+  updateProject: (project: Project) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
   resetInitialProjects: () => void;
+  isDbLoading: boolean;
 }
 
 const ProjectContext = createContext<ProjectContextValue | undefined>(undefined);
@@ -41,6 +48,35 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [activeCategory, setActiveCategory] = useState<ProjectCategory>('all');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isDbLoading, setIsDbLoading] = useState(false);
+
+  // Sync with Firestore database on initialization
+  useEffect(() => {
+    let isMounted = true;
+    const loadFromDatabase = async () => {
+      setIsDbLoading(true);
+      try {
+        const dbProjects = await fetchProjectsFromFirestore();
+        if (!isMounted) return;
+        if (dbProjects && dbProjects.length > 0) {
+          setProjects(dbProjects);
+          localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(dbProjects));
+        } else {
+          // First time initialization: seed into Firestore
+          await seedInitialProjectsToFirestore(INITIAL_PROJECTS);
+        }
+      } catch (err) {
+        console.warn('[Firebase] Database sync fallback to local cache:', err);
+      } finally {
+        if (isMounted) setIsDbLoading(false);
+      }
+    };
+
+    loadFromDatabase();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -54,35 +90,57 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     ? projects
     : projects.filter(p => p.category === activeCategory);
 
-  const addProject = (projectData: Omit<Project, 'id'>) => {
+  const addProject = async (projectData: Omit<Project, 'id'>) => {
     const newProj: Project = {
       ...projectData,
       id: `proj-${Date.now()}`,
     };
     setProjects(prev => [newProj, ...prev]);
     playFeedbackSound('success');
+
+    // Persist to Firestore database
+    try {
+      await saveProjectToFirestore(newProj);
+    } catch (err) {
+      console.warn('[Firebase] Could not save project to Firestore:', err);
+    }
   };
 
-  const updateProject = (updated: Project) => {
+  const updateProject = async (updated: Project) => {
     setProjects(prev => prev.map(p => (p.id === updated.id ? updated : p)));
     if (selectedProject?.id === updated.id) {
       setSelectedProject(updated);
     }
     playFeedbackSound('success');
+
+    // Persist to Firestore database
+    try {
+      await saveProjectToFirestore(updated);
+    } catch (err) {
+      console.warn('[Firebase] Could not update project in Firestore:', err);
+    }
   };
 
-  const deleteProject = (id: string) => {
+  const deleteProject = async (id: string) => {
     setProjects(prev => prev.filter(p => p.id !== id));
     if (selectedProject?.id === id) {
       setSelectedProject(null);
     }
     playFeedbackSound('click');
+
+    // Delete from Firestore database
+    try {
+      await deleteProjectFromFirestore(id);
+    } catch (err) {
+      console.warn('[Firebase] Could not delete project from Firestore:', err);
+    }
   };
 
   const resetInitialProjects = () => {
     setProjects(INITIAL_PROJECTS);
     try {
       localStorage.removeItem(PROJECTS_STORAGE_KEY);
+      seedInitialProjectsToFirestore(INITIAL_PROJECTS);
     } catch {}
     playFeedbackSound('toggle');
   };
@@ -102,6 +160,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateProject,
         deleteProject,
         resetInitialProjects,
+        isDbLoading,
       }}
     >
       {children}
